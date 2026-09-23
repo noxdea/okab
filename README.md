@@ -17,7 +17,7 @@ PDF reading/editing, encryption, signatures, forms, and PDF/A are out of scope. 
 gem "okab"
 ```
 
-Okab requires Ruby 3.2 or later and Alhena 0.3.1 or later.
+Okab requires Ruby 3.2 or later and Alhena 0.3.0 or later.
 
 ## Usage
 

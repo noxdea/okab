@@ -69,7 +69,7 @@ RSpec.describe Okab do
   end
 
   it "renders bold and italic text without changing its searchable characters" do
-    font_path = File.join(Gem::Specification.find_by_name("zaniah").full_gem_path, "assets/fonts/Abel-Regular.ttf")
+    font_path = File.expand_path("fixtures/SourceSans3-Regular.otf", __dir__)
     document = Okab::Document.new
     document.page(width: 200, height: 100) do |page|
       page.text("Styled", x: 10, y: 60, font: Okab::Font.load(font_path), size: 12, bold: true, italic: true)
