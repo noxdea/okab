@@ -1,15 +1,15 @@
 # Okab
 
-Okab (ζ Aquilae) takes its name from Arabic *ʿuqāb*, “eagle”. It is a small Ruby library for creating searchable PDF 1.7 documents with embedded TrueType-outline fonts (including TrueType-flavored OpenType fonts).
+Okab (ζ Aquilae) takes its name from Arabic *ʿuqāb*, “eagle”. It is a small Ruby library for creating searchable PDF 1.7 documents with embedded TrueType and supported CFF1-outline fonts.
 
 ## Features
 
-- TrueType font subsetting through [Alhena](https://github.com/noxdea/alhena), with CID fonts and `ToUnicode` mappings for text search and copy
+- TrueType and static name-keyed CFF1 font subsetting through [Alhena](https://github.com/noxdea/alhena), with CID fonts and `ToUnicode` mappings for text search and copy
 - Text, wrapped text, paths, clipping, transforms, opacity, links, and outlines
 - PNG images with alpha and JPEG images embedded without re-encoding
 - Stable output for the same document inputs; timestamps are omitted
 
-PDF reading/editing, encryption, signatures, forms, and PDF/A are out of scope. CFF/CFF2 font embedding is not supported yet; `Alhena::Subset` currently repackages CFF fonts rather than reducing their glyph set. PNG input is limited to non-interlaced 8-bit images; JPEG input is limited to 8-bit grayscale or RGB baseline, extended-sequential, or progressive images, and Exif orientation is not applied.
+PDF reading/editing, encryption, signatures, forms, and PDF/A are out of scope. CFF2, variable CFF1, and already CID-keyed CFF fonts are not supported; CFF embedding requires `subset: true`. PNG input is limited to non-interlaced 8-bit images; JPEG input is limited to 8-bit grayscale or RGB baseline, extended-sequential, or progressive images, and Exif orientation is not applied.
 
 ## Installation
 
@@ -17,7 +17,7 @@ PDF reading/editing, encryption, signatures, forms, and PDF/A are out of scope. 
 gem "okab"
 ```
 
-Okab requires Ruby 3.2 or later and Alhena 0.3.0 or later.
+Okab requires Ruby 3.2 or later and Alhena 0.3.1 or later.
 
 ## Usage
 

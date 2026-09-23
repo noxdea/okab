@@ -63,13 +63,18 @@ module Okab
     end
 
     def subset_font
-      raise Alhena::UnsupportedFont, "PDF embedding currently requires TrueType outlines" if face.cff?
+      if face.cff?
+        raise Alhena::UnsupportedFont, "CID CFF embedding requires subset: true" unless @subset
+
+        data = Alhena::Subset.build_cid(face, @characters.values.map(&:last))
+        return [data, face, {}, true]
+      end
 
       selected = @subset ? glyph_ids : (0...face.glyph_count).to_a
       data = Alhena::Subset.build(face, selected)
       subset_face = Alhena::Font.new(data)
       old_ids = Alhena::Subset.closure(face, [0, *selected].uniq)
-      [data, subset_face, old_ids.each_with_index.to_h]
+      [data, subset_face, old_ids.each_with_index.to_h, false]
     end
 
     def characters = @characters

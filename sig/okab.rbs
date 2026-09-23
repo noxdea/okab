@@ -72,7 +72,7 @@ module Okab
     def measure: (String text, size: Numeric) -> Float
     def encode: (String string) -> String
     def glyph_ids: () -> Array[Integer]
-    def subset_font: () -> [String, Alhena::Font, Hash[Integer, Integer]]
+    def subset_font: () -> [String, Alhena::Font, Hash[Integer, Integer], bool]
     def characters: () -> Hash[Integer, [String, Integer]]
     def base_name: (String data) -> String
   end

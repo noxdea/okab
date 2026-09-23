@@ -148,6 +148,50 @@ RSpec.describe Okab do
     end
   end
 
+  it "embeds a compact CID-keyed CFF1 subset with a ToUnicode map" do
+    font_path = File.expand_path("fixtures/SourceSans3-Regular.otf", __dir__)
+    font = Okab::Font.load(font_path)
+    document = Okab::Document.new
+    document.page(width: 240, height: 100) do |page|
+      page.text("CFF subset", x: 10, y: 60, font: font, size: 14)
+    end
+    pdf = document.render
+
+    expect(pdf).to include("/FontFile3".b, "/Subtype /CIDFontType0C".b,
+      "/Subtype /CIDFontType0 /BaseFont".b, "/ToUnicode".b)
+    expect(pdf).not_to include("/CIDToGIDMap".b)
+    expect(pdf.bytesize).to be < File.size(font_path)
+    if system("qpdf", "--version", out: File::NULL, err: File::NULL)
+      Tempfile.create(["okab-cff", ".pdf"]) do |file|
+        file.binmode
+        file.write(pdf)
+        file.flush
+        expect(system("qpdf", "--check", file.path, out: File::NULL, err: File::NULL)).to be(true)
+      end
+    end
+  end
+
+  it "extracts text from an embedded CFF1 font" do
+    skip "pdftotext is not installed" unless system("pdftotext", "-v", out: File::NULL, err: File::NULL)
+
+    font = Okab::Font.load(File.expand_path("fixtures/SourceSans3-Regular.otf", __dir__))
+    document = Okab::Document.new
+    document.page(width: 240, height: 100) do |page|
+      page.text("CFF text extraction", x: 10, y: 60, font: font, size: 14)
+    end
+    Tempfile.create(["okab-cff-text", ".pdf"]) do |file|
+      file.binmode
+      file.write(document.render)
+      file.flush
+      expect(IO.popen(["pdftotext", file.path, "-"], &:read)).to include("CFF text extraction")
+      if system("pdffonts", "-v", out: File::NULL, err: File::NULL)
+        fonts = IO.popen(["pdffonts", file.path], &:read)
+        expect(fonts).to include("CID Type 0C")
+        expect(fonts.lines.last).to match(/\byes\s+yes\s+yes\b/)
+      end
+    end
+  end
+
   it "keeps a Japanese glyph subset below one tenth of the source font" do
     skip "Set OKAB_TEST_FONT to measure font subsetting" unless ENV["OKAB_TEST_FONT"]
 

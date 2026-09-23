@@ -96,29 +96,30 @@ module Okab
 
     def render_fonts(writer)
       @fonts.values.each_with_index.filter_map do |embedded, index|
-        data, subset_face, subset_map = embedded.subset_font
+        data, subset_face, subset_map, cff = embedded.subset_font
         base_name = embedded.base_name(data)
-        font_file = writer.stream(data, "/Length1 #{data.bytesize}")
+        font_file = writer.stream(data, cff ? "/Subtype /CIDFontType0C" : "/Length1 #{data.bytesize}")
         bbox = subset_face.bbox.map { |value| scale(value, subset_face.units_per_em) }
         ascent = scale(subset_face.ascent, subset_face.units_per_em)
         descent = scale(subset_face.descent, subset_face.units_per_em)
+        font_file_key = cff ? "FontFile3" : "FontFile2"
         descriptor = writer.add("<< /Type /FontDescriptor /FontName /#{base_name} /Flags 32 " \
           "/FontBBox [#{bbox.join(' ')}] /ItalicAngle 0 /Ascent #{ascent} /Descent #{descent} " \
-          "/CapHeight #{ascent} /StemV 80 /FontFile2 #{font_file} 0 R >>")
+          "/CapHeight #{ascent} /StemV 80 /#{font_file_key} #{font_file} 0 R >>")
         cid_to_gid = +"\0\0".b
         widths, mappings = [], []
         embedded.characters.each do |cid, (character, old_gid)|
           next if cid.zero?
 
-          new_gid = subset_map.fetch(old_gid)
-          cid_to_gid << [new_gid].pack("n")
+          cid_to_gid << [subset_map.fetch(old_gid)].pack("n") unless cff
           widths << "#{cid} [#{scale(embedded.face.advance_width(old_gid), embedded.face.units_per_em)}]"
           mappings << "<#{format('%04X', cid)}> #{PDF::Encoding.unicode_hex(character)}"
         end
-        cid_map_ref = writer.stream(cid_to_gid)
-        cid_font = writer.add("<< /Type /Font /Subtype /CIDFontType2 /BaseFont /#{base_name} " \
+        cid_map = cff ? "" : " /CIDToGIDMap #{writer.stream(cid_to_gid)} 0 R"
+        subtype = cff ? "CIDFontType0" : "CIDFontType2"
+        cid_font = writer.add("<< /Type /Font /Subtype /#{subtype} /BaseFont /#{base_name} " \
           "/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> " \
-          "/FontDescriptor #{descriptor} 0 R /DW 1000 /W [#{widths.join(' ')}] /CIDToGIDMap #{cid_map_ref} 0 R >>")
+          "/FontDescriptor #{descriptor} 0 R /DW 1000 /W [#{widths.join(' ')}]#{cid_map} >>")
         cmap = to_unicode_cmap(mappings)
         cmap_ref = writer.stream(cmap)
         type0 = writer.add("<< /Type /Font /Subtype /Type0 /BaseFont /#{base_name} /Encoding /Identity-H " \
