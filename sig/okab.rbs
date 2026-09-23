@@ -6,7 +6,7 @@ module Okab
   end
 
   class Document
-    def initialize: (?title: String, ?author: String, ?creator: String) -> void
+    def initialize: (?title: String?, ?author: String?, ?creator: String?) -> void
     def page: (width: Numeric, height: Numeric) { (Page) -> void } -> Page
            | (width: Numeric, height: Numeric) -> Page
     def outline: (String title, page: Page, ?level: Integer) -> self
@@ -52,7 +52,7 @@ module Okab
     def opacity: (Numeric value) { (Page) -> void } -> self
     def image: (String | Image data, x: Numeric, y: Numeric, width: Numeric, height: Numeric, ?format: Symbol) -> self
     def link: (Array[Numeric] bounds, ?uri: String, ?page: Page) -> self
-    def content: (fonts: Hash[Integer, Hash[Symbol, untyped]], images: Hash[String, String], opacities: Hash[String, Integer]) -> String
+    def content: (fonts: Hash[Integer, String]) -> String
   end
 
   class Font

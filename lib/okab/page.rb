@@ -159,18 +159,17 @@ module Okab
       raise ArgumentError, "invalid link URI"
     end
 
-    def content(fonts:, images:, opacities:)
+    def content(fonts:)
       output = +"".b
       @operations.each do |operation|
         case operation[0]
         when :raw then output << operation[1].b << "\n".b
         when :text
           _, x, y, font, encoded, size, color, tracking = operation
-          resource = fonts.fetch(font.object_id)
-          output << "#{color.join(' ')} rg\nBT /#{resource.fetch(:name)} #{PDF::Encoding.number(size)} Tf #{PDF::Encoding.number(tracking)} Tc #{PDF::Encoding.number(x)} #{PDF::Encoding.number(y)} Td #{PDF::Encoding.hex(encoded)} Tj ET\n".b
+          output << "#{color.join(' ')} rg\nBT /#{fonts.fetch(font.object_id)} #{PDF::Encoding.number(size)} Tf #{PDF::Encoding.number(tracking)} Tc #{PDF::Encoding.number(x)} #{PDF::Encoding.number(y)} Td #{PDF::Encoding.hex(encoded)} Tj ET\n".b
         when :image
           _, name, x, y, width, height = operation
-          output << "q\n#{PDF::Encoding.number(width)} 0 0 #{PDF::Encoding.number(height)} #{PDF::Encoding.number(x)} #{PDF::Encoding.number(y)} cm\n/#{images.fetch(name)} Do\nQ\n".b
+          output << "q\n#{PDF::Encoding.number(width)} 0 0 #{PDF::Encoding.number(height)} #{PDF::Encoding.number(x)} #{PDF::Encoding.number(y)} cm\n/#{name} Do\nQ\n".b
         end
       end
       @open_clips.times { output << "Q\n".b }

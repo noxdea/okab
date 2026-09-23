@@ -4,8 +4,8 @@ require "zlib"
 
 module Okab
   class Document
-    def initialize(title: "", author: "", creator: "Okab")
-      @metadata = {Title: title, Author: author, Creator: creator}
+    def initialize(title: nil, author: nil, creator: "Okab")
+      @metadata = {Title: title || "", Author: author || "", Creator: creator}
       @pages, @fonts, @images, @opacities, @outlines = [], {}, {}, {}, []
     end
 
@@ -19,6 +19,7 @@ module Okab
     def outline(title, page:, level: 0)
       raise ArgumentError, "outline page belongs to another document" unless @pages.include?(page)
       raise ArgumentError, "outline level must be a nonnegative integer" unless level.is_a?(Integer) && level >= 0
+      raise ArgumentError, "outline level cannot skip a parent" if level > (@outlines.last&.last || -1) + 1
 
       @outlines << [String(title).dup.freeze, page, level]
       self
@@ -63,14 +64,13 @@ module Okab
       end
 
       @pages.zip(page_refs).each do |page, page_ref|
-        font_names = font_resources.to_h { |key, resource| [key.object_id, {name: resource[:name], face: resource[:face], embedded: key}] }
-        image_names = image_resources.to_h { |name, resource| [name, resource[:name]] }
-        content = page.content(fonts: font_names, images: image_names, opacities: opacity_resources)
+        font_names = font_resources.to_h { |key, resource| [key.object_id, resource[:name]] }
+        content = page.content(fonts: font_names)
         content_ref = writer.stream(content)
         annotations = page.annotations.map { |annotation| annotation_object(writer, annotation, page_refs) }
         fonts = font_resources.values.to_h { |font| [font[:name], font[:ref]] }
         resources = "<< /Font #{resource_dictionary(fonts)} " \
-          "/XObject #{resource_dictionary(image_resources.transform_values { |image| image[:ref] })} " \
+          "/XObject #{resource_dictionary(image_resources)} " \
           "/ExtGState #{resource_dictionary(opacity_resources)} >>"
         box = "[0 0 #{number(page.width)} #{number(page.height)}]"
         annotation_refs = annotations.empty? ? "" : "/Annots [#{annotations.map { |ref| "#{ref} 0 R" }.join(' ')}]"
@@ -123,7 +123,7 @@ module Okab
         cmap_ref = writer.stream(cmap)
         type0 = writer.add("<< /Type /Font /Subtype /Type0 /BaseFont /#{base_name} /Encoding /Identity-H " \
           "/DescendantFonts [#{cid_font} 0 R] /ToUnicode #{cmap_ref} 0 R >>")
-        [embedded, {name: "F#{index + 1}", face: subset_face, ref: type0, embedded: embedded}]
+        [embedded, {name: "F#{index + 1}", ref: type0}]
       end.to_h
     end
 
@@ -139,7 +139,7 @@ module Okab
         mask = smask ? "/SMask #{smask} 0 R" : ""
         ref = writer.stream(data, "/Type /XObject /Subtype /Image /Width #{image.width} /Height #{image.height} " \
           "/ColorSpace #{color_space} /BitsPerComponent 8 #{filter} #{decode} #{mask}")
-        [name, {name: name, ref: ref}]
+        [name, ref]
       end
     end
 
@@ -147,14 +147,13 @@ module Okab
       return nil if @outlines.empty?
 
       root = writer.reserve
-      top, parents = [], [nil]
+      top, parents = [], []
       @outlines.each do |title, page, requested_level|
-        level = [requested_level, parents.length - 1].min
-        parents = parents.take(level + 1)
-        siblings = level.zero? ? top : parents[level][:children]
+        parents = parents.take(requested_level)
+        siblings = requested_level.zero? ? top : parents.fetch(requested_level - 1)[:children]
         item = {title: title, page: page_refs.fetch(@pages.index(page)), children: []}
         siblings << item
-        parents[level + 1] = item
+        parents[requested_level] = item
       end
       refs = {}
       allocate = lambda do |siblings|
@@ -214,12 +213,14 @@ module Okab
     end
 
     def pdf_text(value)
-      text = String(value)
+      text = String(value).encode(::Encoding::UTF_8)
       if text.ascii_only?
         "(#{text.gsub(/[\\()]/) { |character| "\\#{character}" }.gsub(/[\x00-\x1f\x7f]/) { |character| format('\\%03o', character.ord) }})"
       else
         PDF::Encoding.hex("\xFE\xFF".b + text.encode(::Encoding::UTF_16BE).b)
       end
+    rescue EncodingError
+      raise ArgumentError, "PDF text must be valid UTF-8"
     end
 
     def scale(value, units_per_em)

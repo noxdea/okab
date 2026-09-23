@@ -9,7 +9,7 @@ Okab (ζ Aquilae) takes its name from Arabic *ʿuqāb*, “eagle”. It is a sma
 - PNG images with alpha and JPEG images embedded without re-encoding
 - Stable output for the same document inputs; timestamps are omitted
 
-PDF reading/editing, encryption, signatures, forms, and PDF/A are out of scope. CFF/CFF2 font embedding is not supported yet; `Alhena::Subset` currently repackages CFF fonts rather than reducing their glyph set. PNG input is limited to non-interlaced 8-bit images; JPEG input is limited to 8-bit grayscale or RGB images, and Exif orientation is not applied.
+PDF reading/editing, encryption, signatures, forms, and PDF/A are out of scope. CFF/CFF2 font embedding is not supported yet; `Alhena::Subset` currently repackages CFF fonts rather than reducing their glyph set. PNG input is limited to non-interlaced 8-bit images; JPEG input is limited to 8-bit grayscale or RGB baseline, extended-sequential, or progressive images, and Exif orientation is not applied.
 
 ## Installation
 

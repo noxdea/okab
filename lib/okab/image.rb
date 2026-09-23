@@ -4,6 +4,7 @@ require "zlib"
 
 module Okab
   class Image
+    # ponytail: cap decoded memory at 50 MP; add streaming raster output if larger images are needed.
     MAX_PIXELS = 50_000_000
     private_constant :MAX_PIXELS
     PNG_SIGNATURE = "\x89PNG\r\n\x1a\n".b.freeze
@@ -61,6 +62,7 @@ module Okab
       raise InvalidDocument, "missing PNG header" unless header&.bytesize == 13
       width, height, depth, type, compression, filtering, interlace = header.unpack("NNC5")
       raise InvalidDocument, "unsupported PNG format" unless depth == 8 && compression.zero? && filtering.zero? && interlace.zero?
+      # ponytail: only 8-bit non-interlaced PNG is decoded; packed, 16-bit, and Adam7 modes add separate row walkers.
       raise InvalidDocument, "invalid PNG dimensions" unless width.positive? && height.positive? && width * height <= MAX_PIXELS
       channels = {0 => 1, 2 => 3, 3 => 1, 4 => 2, 6 => 4}[type]
       raise InvalidDocument, "unsupported PNG color type" unless channels
@@ -121,7 +123,7 @@ module Okab
 
     def self.decode_jpeg(bytes)
       raise InvalidDocument, "invalid JPEG marker" unless bytes.start_with?("\xff\xd8".b)
-      at = 2
+      at, frame = 2, nil
       while at + 4 <= bytes.bytesize
         at += 1 while at < bytes.bytesize && bytes.getbyte(at) != 0xff
         at += 1 while at < bytes.bytesize && bytes.getbyte(at) == 0xff
@@ -130,17 +132,23 @@ module Okab
         next if [0xd8, 0xd9, 0x01, *0xd0..0xd7].include?(marker)
         length = bytes.byteslice(at, 2)&.unpack1("n")
         raise InvalidDocument, "truncated JPEG segment" unless length && length >= 2 && at + length <= bytes.bytesize
-        if [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].include?(marker)
+        # ponytail: support Huffman DCT SOF modes only; lossless/arithmetic JPEG needs another PDF image filter.
+        if [0xc0, 0xc1, 0xc2].include?(marker)
           precision, height, width, components = bytes.byteslice(at + 2, 6).unpack("CnnC")
           raise InvalidDocument, "unsupported JPEG component count" unless [1, 3].include?(components)
           raise InvalidDocument, "unsupported JPEG precision" unless precision == 8
+          frame = [width, height, components]
+        elsif marker == 0xda
+          raise InvalidDocument, "JPEG frame header not found" unless frame
+          eoi = bytes.rindex("\xff\xd9".b)
+          raise InvalidDocument, "JPEG image data is incomplete" unless eoi && eoi >= at + length
+          width, height, components = frame
           return new(width: width, height: height, color_space: components == 1 ? :gray : :rgb,
             data: bytes, filter: :dct, decode_parms: components == 3 ? "/ColorTransform 1" : nil)
         end
-        break if marker == 0xda
         at += length
       end
-      raise InvalidDocument, "JPEG frame header not found"
+      raise InvalidDocument, frame ? "JPEG scan header not found" : "JPEG frame header not found"
     end
 
     def self.inflate_bounded(bytes, expected)

@@ -34,6 +34,10 @@ RSpec.describe Okab do
     expect(pdf).to include(" cm".b)
     expect(pdf).to end_with("%%EOF\n".b)
     expect(build.call).to eq(pdf)
+
+    invalid_outline = Okab::Document.new
+    page = invalid_outline.page(width: 100, height: 100)
+    expect { invalid_outline.outline("Nested", page: page, level: 1) }.to raise_error(ArgumentError, /skip a parent/)
   end
 
   it "rejects documents without pages and invalid links" do
@@ -72,15 +76,17 @@ RSpec.describe Okab do
   end
 
   it "reads JPEG dimensions and preserves DCT data for direct embedding" do
-    frame = "\xFF\xD8\xFF\xC0".b + [17].pack("n") + [8, 1, 2, 3].pack("CnnC") + [1, 0x11, 0, 2, 0x11, 0, 3, 0x11, 0].pack("C*")
-    image = Okab::Image.decode(frame + "\xFF\xD9".b)
-    expect([image.width, image.height, image.filter]).to eq([2, 1, :dct])
+    jpeg = File.binread(File.expand_path("fixtures/tiny.jpg", __dir__))
+    image = Okab::Image.decode(jpeg)
+    expect([image.width, image.height, image.filter]).to eq([1, 1, :dct])
+    expect(image.data).to eq(jpeg)
+    expect { Okab::Image.decode(jpeg.byteslice(0, jpeg.bytesize - 2)) }.to raise_error(Okab::InvalidDocument, /incomplete/)
 
     document = Okab::Document.new
     document.page(width: 100, height: 100) { |page| page.image(image, x: 0, y: 0, width: 20, height: 10) }
     pdf = document.render
     expect(pdf).to include("/Filter /DCTDecode".b)
-    expect(pdf).to include(frame)
+    expect(pdf).to include(jpeg)
   end
 
   it "rejects invalid text and page geometry" do
@@ -107,6 +113,13 @@ RSpec.describe Okab do
       file.flush
       extracted = IO.popen(["pdftotext", file.path, "-"], &:read)
       expect(extracted).to include("四半期報告")
+      if system("pdffonts", "-v", out: File::NULL, err: File::NULL)
+        fonts = IO.popen(["pdffonts", file.path], &:read)
+        expect(fonts.lines.last).to match(/\byes\s+yes\s+yes\b/)
+      end
+      if system("qpdf", "--version", out: File::NULL, err: File::NULL)
+        expect(system("qpdf", "--check", file.path, out: File::NULL, err: File::NULL)).to be(true)
+      end
     end
   end
 
