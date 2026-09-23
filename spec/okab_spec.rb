@@ -40,6 +40,19 @@ RSpec.describe Okab do
     expect { invalid_outline.outline("Nested", page: page, level: 1) }.to raise_error(ArgumentError, /skip a parent/)
   end
 
+  it "passes qpdf structural validation when qpdf is installed" do
+    skip "qpdf is installed in the Linux PDF CI job" unless system("qpdf", "--version", out: File::NULL, err: File::NULL)
+
+    document = Okab::Document.new
+    document.page(width: 100, height: 100) { |page| page.rect(10, 10, 50, 50).stroke([0, 0, 0]) }
+    Tempfile.create(["okab-check", ".pdf"]) do |file|
+      file.binmode
+      file.write(document.render)
+      file.flush
+      expect(system("qpdf", "--check", file.path, out: File::NULL, err: File::NULL)).to be(true)
+    end
+  end
+
   it "rejects documents without pages and invalid links" do
     expect { Okab::Document.new.render }.to raise_error(Okab::InvalidDocument, /no pages/)
     page = Okab::Document.new.page(width: 100, height: 100)

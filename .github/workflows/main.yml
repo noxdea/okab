@@ -31,6 +31,9 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
+      - name: Install PDF validator
+        if: matrix.os == 'ubuntu-24.04' && matrix.ruby == '3.4'
+        run: sudo apt-get update && sudo apt-get install -y qpdf
       - run: bundle exec rake
       - name: Validate RBS signatures
         shell: bash
