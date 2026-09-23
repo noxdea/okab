@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "alhena", ">= 0.3.0", "< 0.4"
-  spec.add_dependency "bigdecimal", ">= 3.1"
+  spec.add_dependency "bigdecimal", "~> 3.1"
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://guides.rubygems.org/make-your-own-gem/
