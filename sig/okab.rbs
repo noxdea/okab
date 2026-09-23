@@ -1,0 +1,91 @@
+module Okab
+  class Error < StandardError
+  end
+
+  class InvalidDocument < Error
+  end
+
+  class Document
+    def initialize: (?title: String, ?author: String, ?creator: String) -> void
+    def page: (width: Numeric, height: Numeric) { (Page) -> void } -> Page
+           | (width: Numeric, height: Numeric) -> Page
+    def outline: (String title, page: Page, ?level: Integer) -> self
+    def owns_page?: (Page page) -> bool
+    def render: () -> String
+    def write: (String path) -> String
+    def embed_font: (Font | Alhena::Font font, ?subset: bool) -> EmbeddedFont
+    def register_image: (Image image) -> String
+    def opacity_name: (Numeric value) -> String
+  end
+
+  class Path
+    attr_reader commands: Array[String]
+    def initialize: () -> void
+    def move_to: (Numeric x, Numeric y) -> self
+    def line_to: (Numeric x, Numeric y) -> self
+    def curve_to: (Numeric x1, Numeric y1, Numeric x2, Numeric y2, Numeric x3, Numeric y3) -> self
+    def close: () -> self
+    def rect: (Numeric x, Numeric y, Numeric width, Numeric height) -> self
+    def ellipse: (Numeric x, Numeric y, Numeric width, Numeric height) -> self
+  end
+
+  class Page
+    attr_reader width: Float
+    attr_reader height: Float
+    attr_reader operations: Array[Array[untyped]]
+    attr_reader annotations: Array[Array[untyped]]
+    attr_reader document: Document
+    def initialize: (Document document, width: Numeric, height: Numeric) -> void
+    def text: (String string, x: Numeric, y: Numeric, font: Font | EmbeddedFont | Alhena::Font, size: Numeric, ?color: Array[Numeric], ?tracking: Numeric) -> self
+    def text_block: (String string, x: Numeric, y: Numeric, width: Numeric, font: Font | EmbeddedFont | Alhena::Font, size: Numeric, line_height: Numeric, ?align: Symbol, ?color: Array[Numeric], ?tracking: Numeric) -> self
+    def move_to: (Numeric x, Numeric y) -> self
+    def line_to: (Numeric x, Numeric y) -> self
+    def curve_to: (Numeric x1, Numeric y1, Numeric x2, Numeric y2, Numeric x3, Numeric y3) -> self
+    def close: () -> self
+    def rect: (Numeric x, Numeric y, Numeric width, Numeric height) -> self
+    def ellipse: (Numeric x, Numeric y, Numeric width, Numeric height) -> self
+    def fill: (Array[Numeric] color) -> self
+    def stroke: (Array[Numeric] color, ?width: Numeric) -> self
+    def fill_and_stroke: (Array[Numeric] color, ?width: Numeric) -> self
+    def clip: () { (Path) -> void } -> self
+    def transform: (Numeric a, Numeric b, Numeric c, Numeric d, Numeric e, Numeric f) { (Page) -> void } -> self
+    def opacity: (Numeric value) { (Page) -> void } -> self
+    def image: (String | Image data, x: Numeric, y: Numeric, width: Numeric, height: Numeric, ?format: Symbol) -> self
+    def link: (Array[Numeric] bounds, ?uri: String, ?page: Page) -> self
+    def content: (fonts: Hash[Integer, Hash[Symbol, untyped]], images: Hash[String, String], opacities: Hash[String, Integer]) -> String
+  end
+
+  class Font
+    attr_reader face: Alhena::Font
+    def self.load: (String path) -> Font
+    def self.embed: (Document document, Font | Alhena::Font font, ?subset: bool) -> EmbeddedFont
+    def initialize: (Alhena::Font face) -> void
+    def measure: (String text, size: Numeric) -> Float
+  end
+
+  class EmbeddedFont
+    attr_reader document: Document
+    attr_reader font: Font
+    attr_reader subset: bool
+    def initialize: (Document document, Font font, ?subset: bool) -> void
+    def face: () -> Alhena::Font
+    def measure: (String text, size: Numeric) -> Float
+    def encode: (String string) -> String
+    def glyph_ids: () -> Array[Integer]
+    def subset_font: () -> [String, Alhena::Font, Hash[Integer, Integer]]
+    def characters: () -> Hash[Integer, [String, Integer]]
+    def base_name: (String data) -> String
+  end
+
+  class Image
+    attr_reader width: Integer
+    attr_reader height: Integer
+    attr_reader color_space: Symbol
+    attr_reader data: String
+    attr_reader alpha: String?
+    attr_reader filter: Symbol?
+    attr_reader decode_parms: String?
+    def self.decode: (String bytes, ?format: Symbol) -> Image
+    def initialize: (width: Integer, height: Integer, color_space: Symbol, data: String, ?alpha: String?, ?filter: Symbol?, ?decode_parms: String?) -> void
+  end
+end
