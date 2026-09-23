@@ -123,6 +123,16 @@ RSpec.describe Okab do
     end
   end
 
+  it "keeps a Japanese glyph subset below one tenth of the source font" do
+    skip "Set OKAB_TEST_FONT to measure font subsetting" unless ENV["OKAB_TEST_FONT"]
+
+    font = Alhena::Font.open(ENV.fetch("OKAB_TEST_FONT"))
+    glyphs = font.glyph_ids("四半期報告")
+    subset = Alhena::Subset.build(font, glyphs)
+
+    expect(subset.bytesize * 10).to be < font.data.bytesize
+  end
+
   def png_image(width, height, color_type, scanlines)
     chunk = lambda do |type, data|
       [data.bytesize].pack("N") + type + data + [Zlib.crc32(type + data)].pack("N")
