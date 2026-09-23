@@ -68,6 +68,18 @@ RSpec.describe Okab do
     expect(document.render).not_to include("1.0e-08".b)
   end
 
+  it "renders bold and italic text without changing its searchable characters" do
+    font_path = File.join(Gem::Specification.find_by_name("zaniah").full_gem_path, "assets/fonts/Abel-Regular.ttf")
+    document = Okab::Document.new
+    document.page(width: 200, height: 100) do |page|
+      page.text("Styled", x: 10, y: 60, font: Okab::Font.load(font_path), size: 12, bold: true, italic: true)
+    end
+
+    pdf = document.render
+    expect(pdf).to include("2 Tr".b, "1 0 0.2 1 10.0 60.0 Tm".b)
+    expect(pdf).to include("0.42 w".b)
+  end
+
   it "decodes PNG color and alpha data and rejects corrupt chunks" do
     png = png_image(1, 1, 6, [0, 255, 10, 20, 128].pack("C*"))
     image = Okab::Image.decode(png)

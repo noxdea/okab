@@ -46,13 +46,14 @@ module Okab
       @operations, @annotations, @open_clips = [], [], 0
     end
 
-    def text(string, x:, y:, font:, size:, color: [0, 0, 0], tracking: 0)
+    def text(string, x:, y:, font:, size:, color: [0, 0, 0], tracking: 0, bold: false, italic: false)
       validate_text(string)
       size, tracking = finite(size, "font size"), finite(tracking, "tracking")
       raise ArgumentError, "font size must be positive" unless size.positive?
+      raise ArgumentError, "bold and italic must be true or false" unless [bold, italic].all? { |value| value == true || value == false }
       embedded = @document.embed_font(font)
       encoded = embedded.encode(string)
-      @operations << [:text, finite(x, "x"), finite(y, "y"), embedded, encoded, size, rgb(color), tracking]
+      @operations << [:text, finite(x, "x"), finite(y, "y"), embedded, encoded, size, rgb(color), tracking, bold, italic]
       self
     end
 
@@ -165,8 +166,13 @@ module Okab
         case operation[0]
         when :raw then output << operation[1].b << "\n".b
         when :text
-          _, x, y, font, encoded, size, color, tracking = operation
-          output << "#{color.join(' ')} rg\nBT /#{fonts.fetch(font.object_id)} #{PDF::Encoding.number(size)} Tf #{PDF::Encoding.number(tracking)} Tc #{PDF::Encoding.number(x)} #{PDF::Encoding.number(y)} Td #{PDF::Encoding.hex(encoded)} Tj ET\n".b
+          _, x, y, font, encoded, size, color, tracking, bold, italic = operation
+          output << "#{color.join(' ')} rg\n"
+          if bold
+            output << "#{color.join(' ')} RG\n#{PDF::Encoding.number((size * 0.035).round(4))} w\n"
+          end
+          matrix = italic ? "1 0 0.2 1 #{PDF::Encoding.number(x)} #{PDF::Encoding.number(y)} Tm" : "#{PDF::Encoding.number(x)} #{PDF::Encoding.number(y)} Td"
+          output << "BT /#{fonts.fetch(font.object_id)} #{PDF::Encoding.number(size)} Tf #{PDF::Encoding.number(tracking)} Tc #{bold ? 2 : 0} Tr #{matrix} #{PDF::Encoding.hex(encoded)} Tj ET\n".b
         when :image
           _, name, x, y, width, height = operation
           output << "q\n#{PDF::Encoding.number(width)} 0 0 #{PDF::Encoding.number(height)} #{PDF::Encoding.number(x)} #{PDF::Encoding.number(y)} cm\n/#{name} Do\nQ\n".b

@@ -36,7 +36,7 @@ module Okab
     attr_reader annotations: Array[Array[untyped]]
     attr_reader document: Document
     def initialize: (Document document, width: Numeric, height: Numeric) -> void
-    def text: (String string, x: Numeric, y: Numeric, font: Font | EmbeddedFont | Alhena::Font, size: Numeric, ?color: Array[Numeric], ?tracking: Numeric) -> self
+    def text: (String string, x: Numeric, y: Numeric, font: Font | EmbeddedFont | Alhena::Font, size: Numeric, ?color: Array[Numeric], ?tracking: Numeric, ?bold: bool, ?italic: bool) -> self
     def text_block: (String string, x: Numeric, y: Numeric, width: Numeric, font: Font | EmbeddedFont | Alhena::Font, size: Numeric, line_height: Numeric, ?align: Symbol, ?color: Array[Numeric], ?tracking: Numeric) -> self
     def move_to: (Numeric x, Numeric y) -> self
     def line_to: (Numeric x, Numeric y) -> self
