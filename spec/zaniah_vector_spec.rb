@@ -80,9 +80,14 @@ RSpec.describe "Zaniah vector PDF bridge" do
     expect(pdf.instance_variable_get(:@fonts).length).to eq(1)
     next unless system("which", "pdftotext", out: File::NULL, err: File::NULL)
 
-    output, status = Open3.capture2("pdftotext", "-raw", "-", "-", stdin_data: pdf.render)
-    expect(status).to be_success
-    expect(output).to include("AB")
+    Dir.mktmpdir("okab-vector") do |directory|
+      input = File.join(directory, "document.pdf")
+      output = File.join(directory, "document.txt")
+      File.binwrite(input, pdf.render)
+      message, status = Open3.capture2e("pdftotext", "-raw", input, output)
+      expect(status).to be_success, message
+      expect(File.read(output)).to include("AB")
+    end
   end
 
   it "rasterizes only unsupported gradient and shadow commands locally" do
