@@ -37,6 +37,7 @@ module Okab
     attr_reader document: Document
     def initialize: (Document document, width: Numeric, height: Numeric) -> void
     def text: (String string, x: Numeric, y: Numeric, font: Font | EmbeddedFont | Alhena::Font, size: Numeric, ?color: Array[Numeric], ?tracking: Numeric, ?bold: bool, ?italic: bool) -> self
+    def glyph: (Integer glyph_id, x: Numeric, y: Numeric, font: Font | Alhena::Font, size: Numeric, unicode: String, ?color: Array[Numeric]) -> self
     def text_block: (String string, x: Numeric, y: Numeric, width: Numeric, font: Font | EmbeddedFont | Alhena::Font, size: Numeric, line_height: Numeric, ?align: Symbol, ?color: Array[Numeric], ?tracking: Numeric) -> self
     def move_to: (Numeric x, Numeric y) -> self
     def line_to: (Numeric x, Numeric y) -> self
@@ -44,10 +45,12 @@ module Okab
     def close: () -> self
     def rect: (Numeric x, Numeric y, Numeric width, Numeric height) -> self
     def ellipse: (Numeric x, Numeric y, Numeric width, Numeric height) -> self
-    def fill: (Array[Numeric] color) -> self
-    def stroke: (Array[Numeric] color, ?width: Numeric) -> self
+    def path: (Path outline) -> self
+    def fill: (Array[Numeric] color, ?rule: :nonzero | :evenodd) -> self
+    def stroke: (Array[Numeric] color, ?width: Numeric, ?cap: :butt | :round | :square, ?join: :miter | :round | :bevel, ?miter: Numeric, ?dash: Array[Numeric]?) -> self
     def fill_and_stroke: (Array[Numeric] color, ?width: Numeric) -> self
     def clip: () { (Path) -> void } -> self
+    def with_clip: (Path path, ?rule: :nonzero | :evenodd) { (Page) -> void } -> self
     def transform: (Numeric a, Numeric b, Numeric c, Numeric d, Numeric e, Numeric f) { (Page) -> void } -> self
     def opacity: (Numeric value) { (Page) -> void } -> self
     def image: (String | Image data, x: Numeric, y: Numeric, width: Numeric, height: Numeric, ?format: Symbol) -> self
@@ -71,6 +74,7 @@ module Okab
     def face: () -> Alhena::Font
     def measure: (String text, size: Numeric) -> Float
     def encode: (String string) -> String
+    def encode_glyph: (Integer glyph, unicode: String) -> String
     def glyph_ids: () -> Array[Integer]
     def subset_font: () -> [String, Alhena::Font, Hash[Integer, Integer], bool]
     def characters: () -> Hash[Integer, [String, Integer]]
@@ -87,5 +91,9 @@ module Okab
     attr_reader decode_parms: String?
     def self.decode: (String bytes, ?format: Symbol) -> Image
     def initialize: (width: Integer, height: Integer, color_space: Symbol, data: String, ?alpha: String?, ?filter: Symbol?, ?decode_parms: String?) -> void
+  end
+
+  class ZaniahVector
+    def self.draw: (Page page, untyped vector_document) -> Page
   end
 end

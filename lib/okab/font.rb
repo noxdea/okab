@@ -58,6 +58,22 @@ module Okab
       cids.pack("n*")
     end
 
+    # Preserve glyph IDs produced by an external shaper instead of shaping the
+    # source text a second time when a vector display list is embedded.
+    def encode_glyph(glyph, unicode:)
+      raise ArgumentError, "invalid glyph ID" unless glyph.is_a?(Integer) && glyph.between?(0, face.glyph_count - 1)
+      raise ArgumentError, "glyph text must be valid UTF-8" unless unicode.is_a?(String) && unicode.encoding == Encoding::UTF_8 && unicode.valid_encoding?
+      key = [unicode, glyph]
+      cid = @cid_by_character[key]
+      unless cid
+        cid = @characters.length
+        raise ArgumentError, "a PDF font cannot encode more than 65,535 characters" if cid > 65_535
+        @cid_by_character[key] = cid
+        @characters[cid] = [unicode.empty? ? "\uFFFD" : unicode, glyph]
+      end
+      [cid].pack("n")
+    end
+
     def glyph_ids
       @characters.values.map(&:last).uniq
     end

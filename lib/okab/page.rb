@@ -57,6 +57,15 @@ module Okab
       self
     end
 
+    def glyph(glyph_id, x:, y:, font:, size:, unicode:, color: [0, 0, 0])
+      size = finite(size, "font size")
+      raise ArgumentError, "font size must be positive" unless size.positive?
+      embedded = @document.embed_font(font)
+      encoded = embedded.encode_glyph(glyph_id, unicode: unicode)
+      @operations << [:text, finite(x, "x"), finite(y, "y"), embedded, encoded, size, rgb(color), 0.0, false, false]
+      self
+    end
+
     def text_block(string, x:, y:, width:, font:, size:, line_height:, align: :left, color: [0, 0, 0], tracking: 0)
       validate_text(string)
       x, y = finite(x, "x"), finite(y, "y")
@@ -90,8 +99,28 @@ module Okab
       raw(path.commands.join("\n"))
     end
 
-    def fill(color) = raw("#{rgb(color).join(' ')} rg\nf")
-    def stroke(color, width: 1) = raw("#{rgb(color).join(' ')} RG\n#{positive(width, 'line width')} w\nS")
+    def path(outline)
+      raise ArgumentError, "path must not be empty" unless outline.is_a?(Path) && !outline.commands.empty?
+      raw(outline.commands.join("\n"))
+    end
+
+    def fill(color, rule: :nonzero)
+      raise ArgumentError, "fill rule must be nonzero or evenodd" unless %i[nonzero evenodd].include?(rule)
+      raw("#{rgb(color).join(' ')} rg\n#{rule == :evenodd ? 'f*' : 'f'}")
+    end
+
+    def stroke(color, width: 1, cap: :butt, join: :miter, miter: 10, dash: nil)
+      raise ArgumentError, "line cap must be butt, round, or square" unless %i[butt round square].include?(cap)
+      raise ArgumentError, "line join must be miter, round, or bevel" unless %i[miter round bevel].include?(join)
+      style = "#{rgb(color).join(' ')} RG\n#{positive(width, 'line width')} w\n#{ {butt: 0, round: 1, square: 2}.fetch(cap) } J\n#{ {miter: 0, round: 1, bevel: 2}.fetch(join) } j\n#{positive(miter, 'miter limit')} M"
+      if dash
+        raise ArgumentError, "dash must contain positive lengths" unless dash.is_a?(Array) && !dash.empty? && dash.all? { |value| value.is_a?(Numeric) && value.finite? && value.positive? }
+        style << "\n[#{dash.map { |value| PDF::Encoding.number(value) }.join(' ')}] 0 d"
+      else
+        style << "\n[] 0 d"
+      end
+      raw("#{style}\nS")
+    end
     def fill_and_stroke(color, width: 1) = raw("#{rgb(color).join(' ')} rg\n#{rgb(color).join(' ')} RG\n#{positive(width, 'line width')} w\nB")
 
     def clip
@@ -101,6 +130,22 @@ module Okab
       raise ArgumentError, "clip path must not be empty" if path.commands.empty?
       @operations << [:raw, "q\n#{path.commands.join("\n")}\nW n"]
       @open_clips += 1
+      self
+    end
+
+    def with_clip(path, rule: :nonzero)
+      raise ArgumentError, "clip requires a block" unless block_given?
+      raise ArgumentError, "clip path must not be empty" unless path.is_a?(Path) && !path.commands.empty?
+      raise ArgumentError, "clip rule must be nonzero or evenodd" unless %i[nonzero evenodd].include?(rule)
+      start = @operations.length
+      @operations << [:raw, "q\n#{path.commands.join("\n")}\n#{rule == :evenodd ? 'W*' : 'W'} n"]
+      begin
+        yield self
+      rescue StandardError
+        @operations.slice!(start..)
+        raise
+      end
+      @operations << [:raw, "Q"]
       self
     end
 

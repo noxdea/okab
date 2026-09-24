@@ -5,7 +5,7 @@ require "tempfile"
 
 RSpec.describe Okab do
   it "has a version number" do
-    expect(Okab::VERSION).to eq("0.1.0")
+    expect(Okab::VERSION).to eq("0.2.0")
   end
 
   it "renders deterministic PDF pages with links and outlines" do

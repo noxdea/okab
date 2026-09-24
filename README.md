@@ -33,6 +33,7 @@ produce stable output without timestamps. Its name comes from Arabic *ʿuqāb*,
 - TrueType and supported static CFF1 font embedding, including Japanese text when the font contains the glyphs
 - Text and wrapped text, vector paths, clipping, transforms, and opacity
 - PNG images with alpha and JPEG images embedded without re-encoding
+- Optional Zaniah vector-document bridge with searchable glyph runs
 - Page links, document outlines, and deterministic PDF output
 
 ## Installation
@@ -64,6 +65,27 @@ document.write("report.pdf")
 Coordinates are in PDF points, with the origin at the lower-left corner. Text
 must be valid UTF-8. Use a font with Japanese glyphs to render Japanese text.
 
+### Zaniah vector documents
+
+Install Zaniah separately, then load the optional bridge explicitly:
+
+```ruby
+require "okab/zaniah_vector"
+
+vector = Zaniah::Vector.record(width: 595, height: 842) { slide_element }
+pdf = Okab::Document.new
+page = pdf.page(width: vector.width, height: vector.height)
+Okab::ZaniahVector.draw(page, vector)
+pdf.write("slide.pdf")
+```
+
+The bridge converts Zaniah's top-left coordinates to PDF's lower-left
+coordinates. Solid quads and paths remain PDF vector operations, shaped glyph
+IDs are embedded with `ToUnicode` mappings, and images remain PDF images.
+Unsupported paint effects such as multi-stop gradients and shadows are
+rasterized individually, never as a full-page screenshot. See
+[the adapter notes](docs/zaniah-vector.md) for the mapping and limits.
+
 ## Limits
 
 Okab generates PDFs; it does not read or edit them. Encryption, signatures,
@@ -78,7 +100,7 @@ forms, and PDF/A are out of scope.
 ```sh
 bundle install
 bundle exec rake
-bundle exec rbs -I sig validate
+bundle exec rbs -I sig -r alhena validate
 ```
 
 To test real Japanese text extraction, set `OKAB_TEST_FONT` to a TrueType font

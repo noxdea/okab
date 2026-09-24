@@ -33,7 +33,7 @@ module Okab
       font = Font.new(font) if font.is_a?(Alhena::Font)
       raise ArgumentError, "font must be an Okab::Font or Alhena::Font" unless font.is_a?(Font)
 
-      key = [font.object_id, !!subset]
+      key = [font.face.object_id, !!subset]
       @fonts[key] ||= EmbeddedFont.new(self, font, subset: subset)
     end
 

@@ -31,9 +31,9 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-      - name: Install PDF validator
+      - name: Install PDF validation tools
         if: matrix.os == 'ubuntu-24.04' && matrix.ruby == '3.4'
-        run: sudo apt-get update && sudo apt-get install -y qpdf
+        run: sudo apt-get update && sudo apt-get install -y qpdf poppler-utils
       - run: bundle exec rake
       - name: Validate RBS signatures
         shell: bash
@@ -41,7 +41,9 @@ jobs:
       - name: Verify runtime dependency isolation
         if: matrix.os == 'ubuntu-24.04' && matrix.ruby == '3.4'
         shell: bash
-        run: test -z "$(git grep -iE 'zaniah|syrma|canopus|beid|furud|denebola' -- lib || true)"
+        run: |
+          bundle exec ruby -Ilib -e 'require "okab"; abort "core Okab loaded Zaniah" if defined?(::Zaniah)'
+          bundle exec ruby -e 'spec = Gem::Specification.load("okab.gemspec"); blocked = %w[zaniah syrma canopus beid furud denebola]; abort "unexpected runtime dependency" if spec.runtime_dependencies.any? { |dependency| blocked.include?(dependency.name) }'
       - run: gem build --strict okab.gemspec
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
