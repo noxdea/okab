@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#020617">
+    <meta name="description" content="{{ page.description | escape }}">
+    <title>{{ page.title | escape }} · Okab User Guide</title>
+    <link rel="canonical" href="{{ page.url | absolute_url }}">
+    <link rel="stylesheet" href="{{ '/styles.css' | relative_url }}">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header shell">
+      <a class="wordmark" href="{{ '/' | relative_url }}" aria-label="Okab home">Okab<span aria-hidden="true">.</span></a>
+      <nav aria-label="Primary navigation">
+        <a href="{{ '/' | relative_url }}">Home</a>
+        <a href="{{ '/docs/' | relative_url }}" aria-current="true">User guide</a>
+        <a href="https://github.com/noxdea/okab">GitHub</a>
+      </nav>
+    </header>
+    <div class="docs-shell shell">
+      <aside class="guide-nav" aria-label="User guide">
+        <h2>User guide</h2>
+        <nav aria-label="Guide navigation">
+          {% for item in site.guide %}
+          <a href="{{ item.url | relative_url }}"{% if page.url == item.url %} aria-current="page"{% endif %}>{{ item.title }}</a>
+          {% endfor %}
+        </nav>
+      </aside>
+      <main id="main" class="guide-content">
+        <header class="guide-heading">
+          <h1>{{ page.title | escape }}</h1>
+          <p class="lead">{{ page.description | escape }}</p>
+        </header>
+        {{ content }}
+      </main>
+    </div>
+    <footer class="site-footer shell">
+      <span>Okab is open source under the <a href="https://github.com/noxdea/okab/blob/main/LICENSE.txt">MIT License</a>.</span>
+      <div><a href="https://github.com/noxdea/okab/blob/main/{{ page.path }}">Edit this page on GitHub</a></div>
+    </footer>
+  </body>
+</html>

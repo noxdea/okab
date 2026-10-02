@@ -1,0 +1,45 @@
+title: Okab
+description: Generate searchable PDFs with embedded fonts in pure Ruby.
+url: https://noxdea.github.io
+baseurl: /okab
+repository: noxdea/okab
+theme: null
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+plugins:
+  - jekyll-relative-links
+defaults:
+  - scope:
+      path: docs
+    values:
+      layout: guide
+guide:
+  - title: Getting started
+    url: /docs/
+  - title: Text and navigation
+    url: /docs/usage.html
+  - title: Graphics and images
+    url: /docs/graphics.html
+  - title: Zaniah vector documents
+    url: /docs/zaniah-vector.html
+  - title: Formats and limits
+    url: /docs/limits.html
+  - title: Development
+    url: /docs/development.html
+exclude:
+  - README.md
+  - CHANGELOG.md
+  - LICENSE.txt
+  - Gemfile
+  - Gemfile.lock
+  - Rakefile
+  - okab.gemspec
+  - '*.gem'
+  - lib
+  - sig
+  - spec
+  - examples
+  - tmp
+  - vendor
