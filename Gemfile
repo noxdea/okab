@@ -9,4 +9,4 @@ gem "rake", "~> 13.0"
 
 gem "rspec", "~> 3.0"
 gem "rbs", "~> 4.1"
-gem "zaniah", "~> 0.11.0", require: false
+gem "zaniah", "~> 0.12.4", require: false
